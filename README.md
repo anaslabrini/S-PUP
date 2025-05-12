@@ -33,6 +33,12 @@ Before running AnasSpyLogger, you need to install the necessary Python libraries
 pip install pynput requests
 ```
 
+OR
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 ### Step 1: Setup Configuration
