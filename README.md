@@ -68,7 +68,7 @@ AnasSpyLogger/
 ├── main.py                  # Main script to run the tool, handle configuration and updates
 ├── tool/
 │   └── anasspylogger.py     # The keylogger functionality, including email sending, keylogging, and persistence setup
-└── install.sh               # Virtual environment for dependencies (optional)
+└── install.sh               # Executable file to install required libraries
 ```
 
 ### main.py
