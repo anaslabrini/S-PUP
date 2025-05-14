@@ -152,7 +152,7 @@ def persist_script():
         with open(desktop_file_path, 'w') as f:
             f.write("[Desktop Entry]\n")
             f.write("Type=Application\n")
-            f.write(f"Exec=python3 {os.path.abspath(__file__)}\n")
+            f.write(f"Exec=sh -c "sleep 15 && python3 {os.path.abspath(__file__)}\n")
             f.write("Name=ASL\n")
             f.write("Hidden=true\n")
             f.write("NoDisplay=true\n")
