@@ -9,11 +9,27 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import subprocess
+    
 
-# ===== إعدادات البريد =====
-EMAIL_ADDRESS = "default_email"
-EMAIL_PASSWORD = "default_password"
-TO_EMAIL = "default_receiver"
+# ===== التحقق من وجود config.py وإنشاؤه إذا لم يكن موجوداً =====
+CONFIG_FILE = 'config.py'
+def check_or_create_config():
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'w') as f:
+            f.write("EMAIL_ADDRESS = 'default_email'\n")
+            f.write("EMAIL_PASSWORD = 'default_password'\n")
+            f.write("TO_EMAIL = 'default_receiver'\n")
+
+check_or_create_config()
+
+# ===== تحميل البيانات من config.py =====
+config_data = {}
+with open(CONFIG_FILE, 'r') as f:
+    exec(f.read(), config_data)
+
+EMAIL_ADDRESS = config_data.get('EMAIL_ADDRESS', 'default_email')
+EMAIL_PASSWORD = config_data.get('EMAIL_PASSWORD', 'default_password')
+TO_EMAIL = config_data.get('TO_EMAIL', 'default_receiver')
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
