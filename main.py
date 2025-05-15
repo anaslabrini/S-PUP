@@ -88,8 +88,6 @@ try:
 
     print(f"[+] The modified file has been saved as {output_filename}")
 
-    # تشغيل خدمة persist_script() للتفعيل التلقائي
-    anasspylogger.persist_script(output_filename)
 
 except FileNotFoundError:
     print("[-] The specified file was not found.")
