@@ -1,3 +1,10 @@
+# From nothing we make everything
+# From nothing we make everything
+# From nothing we make everything
+# FNWME
+# FNWME
+# FNWME
+
 import os
 import platform
 import threading
