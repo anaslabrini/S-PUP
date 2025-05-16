@@ -1,12 +1,13 @@
 # From nothing we make everything
 # From nothing we make everything
 # From nothing we make everything
-# DWARF CROCODILE
-# DWARF CROCODILE
-# DWARF CROCODILE
-# D-CROC
-# D-CROC
-# D-CROC
+# SHARK PUP
+# SHARK PUP
+# SHARK PUP
+# S-PUP
+# S-PUP
+# S-PUP
+# By Anas Labrini
 
 
 import os
