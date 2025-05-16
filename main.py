@@ -1,3 +1,14 @@
+# From nothing we make everything
+# From nothing we make everything
+# From nothing we make everything
+# DWARF CROCODILE
+# DWARF CROCODILE
+# DWARF CROCODILE
+# D-CROC
+# D-CROC
+# D-CROC
+
+
 import os
 import requests
 from tool import anasspylogger
