@@ -1,9 +1,12 @@
 # From nothing we make everything
 # From nothing we make everything
 # From nothing we make everything
-# FNWME
-# FNWME
-# FNWME
+# DWARF CROCODILE
+# DWARF CROCODILE
+# DWARF CROCODILE
+# D-CROC
+# D-CROC
+# D-CROC
 
 import os
 import platform
