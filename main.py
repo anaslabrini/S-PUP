@@ -60,7 +60,7 @@ print("""
 \033[91m	                   17$W9$$$$W\033[0m9$W$$9$W998
 \033[91m	                    96799W9W$\033[0m9$WW9W8$88
 \033[91m	                     47799W9#\033[0m$WW$WW$92
-\033[91m	                     45?68$7W\033[0m$9$999488
+\033[91m	                Anas 45?68$7W\033[0m$9$999488 Labrini
 \033[91m	                     57646658\033[0m8$9877999
 \033[91m	                    ;46875787\033[0m777$9$W98+.
 \033[91m	                  .4678777785\033[0m798$87WW$$7.
@@ -79,8 +79,8 @@ print("""
 """)
 
 try:
-    input_email = input("Enter the email address: ")
-    input_password = input("Enter the email password: ")
+    input_email = input("Enter the sender's email address: ")
+    input_password = input("Enter your email app password: ")
     input_receiver = input("Enter the receiver email: ")
     output_filename = input("Enter the output filename (without .py extension): ") + ".py"
 
