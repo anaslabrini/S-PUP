@@ -19,9 +19,12 @@ import platform
 
 
 file_path = input("Enter path your script : ")
+# اسم السكربت المشفر
+output_file = "AnasSpyLogger_AES.py"
 
 
-print("""\033[91m			vdfji\033[0m#*$pp
+
+print("""\033[91m			       vdfji\033[0m#*$pp
 \033[91m	                      m516$9#\033[0m#$$8=m
 \033[91m	                    +88$9WWW$\033[0mWWW#8$$$
 \033[91m	                   8$9$W$9$$9\033[0mW$WWW$WW9W,
