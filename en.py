@@ -22,8 +22,15 @@ file_path = input("Enter path your script : ")
 # اسم السكربت المشفر
 output_file = "AnasSpyLogger_AES.py"
 
+def clear_screen():
+    if os.name == "posix":
+        os.system("clear")
+    elif os.name == "nt":
+        os.system("cls")
 
+clear_screen()
 
+print("                     From nothing we make everything")
 print("""\033[91m			       vdfji\033[0m#*$pp
 \033[91m	                      m516$9#\033[0m#$$8=m
 \033[91m	                    +88$9WWW$\033[0mWWW#8$$$
