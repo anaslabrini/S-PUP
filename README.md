@@ -1,122 +1,196 @@
-# AnasSpyLogger
 
-![ASL Logo](ASL.png)
+# 🦈 S-PUP (SHARK PUP)
 
-AnasSpyLogger is an advanced keylogger tool developed by **Anas Labrini**. This tool is designed for tracking keypresses on the target system, capturing sensitive information, and sending logs via email. It also includes persistence features to ensure the keylogger runs on system startup, as well as the ability to update itself from a remote server. 
-Developed with love in Python ❤ by [anasslabrini](https://github.com/anasslabrini).
-MyWebSite: [anaslabrini](https://anaslabrini.netlify.app)
-Instagram: [anasans005](https://www.instagram.com/anasans005?igsh=dzNsOXN3Nm9INmVk)
 
-This tool is intended for educational and ethical testing purposes only. Use responsibly and only on systems you have explicit permission to test.
+![S-PUP Logo](S-PUP.png)
 
-## Features
+**By Anas Labrini**  
+_"From nothing we make everything."_
 
-- **Keylogging:** Capture keystrokes in real-time.
-- **Email Reporting:** Send captured logs to a specified email address.
-- **Persistence:** Automatically starts when the system reboots.
-- **Auto-Update:** Automatically checks and updates the script from a remote server.
-- **Cross-Platform:** Works on Linux, Windows, and macOS systems.
+---
 
-## Requirements
+## 📜 Overview
 
-- Python 3.x
-- `pynput` for keyboard event listening
-- `requests` for script updates
-- `smtplib` for sending emails
-- `subprocess` and `platform` for system-specific persistence mechanisms
+**S-PUP (SHARK PUP)** is an advanced surveillance and persistence Python-based tool designed for **red team** operations, combining powerful keylogging, system reconnaissance, stealth, and dynamic encryption mechanisms. It includes both encryption utilities and a full persistence-enabled logger that can also perform system information harvesting and evade analysis.
 
-### Install Dependencies
+---
 
-Before running AnasSpyLogger, you need to install the necessary Python libraries:
+## 📁 Project Structure
 
+```
+S-PUP/
+├── en.py               # AES encryptor with self-rebuilding script capabilities
+└── tool/
+    └── S-PUP.py        # Main keylogger and persistence tool
+```
+
+---
+
+## 🔐 `en.py` - AES Encryptor
+
+### 🔧 Features
+- Encrypts any Python script using AES (CBC mode) with a dynamically generated key.
+- Creates a self-decrypting script (`S-PUP_AES.py`).
+- Option to convert the final encrypted script into a `.exe` using PyInstaller.
+- Uses system details (hostname, OS, CPU) to generate encryption key.
+- For example, guards monitor their leader, and if they can't find him or he dies, one of the guards takes over and revives him.
+
+### ▶️ Usage
 ```bash
-pip install pynput requests
+python3 en.py
 ```
+You will be prompted to enter the path to the target Python script.
 
-OR
+---
 
+## 🧠 `S-PUP.py` - Surveillance & Persistence
+
+### 🎯 Capabilities
+- **Keylogger**: Logs keystrokes in real-time and sends logs via email.
+- **Email Integration**: Sends logs, system details, and browser credential files.
+- **System Reconnaissance**:
+  - OS version, architecture, user info
+  - Internal/external IP, MAC address
+  - Installed programs, active processes
+  - Desktop/Downloads file listing
+  - Wi-Fi networks (Linux)
+- **Browser Data**:
+  - Copies Chrome and Firefox login/password files
+- **Stealth & Evasion**:
+  - Anti-debugging & anti-analysis (kills tools like Wireshark, GDB, etc.)
+  - Deletes known reverse engineering tools if permissions allow
+- **Persistence**:
+  - Auto-start via systemd on Linux, Startup folder on Windows, and LaunchAgent on macOS
+  - Creates multiple hidden backups
+  - Watchdog mode to restore if main script is deleted
+- **Self-Updating**:
+  - Auto-checks GitHub for updates hourly
+
+### ▶️ Usage
 ```bash
-pip install -r requirements.txt
+python3 S-PUP.py
 ```
 
-## Usage
+> On first run, it installs itself as a persistent background service depending on the OS.
 
-### Step 1: Setup Configuration
-Before running the keylogger, you need to configure it by providing the following details:
+---
 
-- **Email Address:** Your email address for sending the captured keystrokes.
-- **Email Password:** Password application for your email address.
-- **Receiver Email:** The email address to which the logs will be sent.
-- **Output Filename:** The name of the output Python file for logging the keystrokes.
+## ⚙️ Configuration
 
-The configuration is done via a prompt when running the `main.py` script. It will ask you to provide the above details.
+Edit the following in `S-PUP.py`:
+```python
+EMAIL_ADDRESS = "default_email"
+EMAIL_PASSWORD = "default_password"
+TO_EMAIL = "default_receiver"
+```
 
-### Step 2: Run the Keylogger
+Update the GitHub auto-update link:
+```python
+update_url = "https://raw.githubusercontent.com/anaslabrini/S-PUP/refs/heads/main/tool/S-PUP.py"
+```
 
-After configuring the email settings, simply run the `main.py` script:
+---
 
+## 🛡 Anti-Analysis Features
+
+- Process scan and kill:
+  - e.g., `wireshark`, `gdb`, `IDA`, `ghidra`, `sandboxie`, `vboxservice`, `frida`
+- Deletes apps from known paths if permissions allow
+
+---
+
+## 📤 Email Report Example
+
+- `keylogs_TIMESTAMP.txt` with recorded keystrokes
+- System info report body
+- Attached files from browser paths (Login Data, logins.json, etc.)
+
+---
+
+## 🚀 Persistence Details
+
+| OS        | Method                      |
+|-----------|-----------------------------|
+| **Linux** | `systemd --user` service    |
+| **Windows** | Startup `.bat` file       |
+| **macOS** | `LaunchAgent` plist         |
+
+Backups are created in:
+- `~/.config/.cache/`
+- `~/.local/share/.logs/`
+- etc.
+
+---
+
+## 🧪 Watcher Mode
+
+If the main script is deleted, the watchers upgrade themselves to the base system and restore service.
+
+### Run Watcher:
 ```bash
-python main.py
+python3 S-PUP.py --watcher
 ```
 
-This will:
-- Prompt for your email, password, receiver email, and output filename.
-- Start logging keystrokes.
-- Send the logs to the receiver's email.
-- Ensure the script persists and runs automatically upon system reboot.
+---
 
+## 🧩 Dependencies
 
-## File Structure
+- `pynput`
+- `psutil`
+- `smtplib`
+- `requests`
+- `pycryptodome`
+- `PyInstaller` (optional)
 
-```
-AnasSpyLogger/
-│
-├── main.py                  # Main script to run the tool, handle configuration and updates
-├── tool/
-│   └── anasspylogger.py     # The keylogger functionality, including email sending, keylogging, and persistence setup
-└── requirements.txt         # Executable file to install required libraries
+Install with:
+```bash
+pip install pynput psutil requests pycryptodome
 ```
 
-### main.py
+---
+## ⚖️ License
 
-The `main.py` script is responsible for:
-- Asking the user for configuration details (email, password, receiver email).
-- Running the keylogger script (`anasspylogger.py`).
-- Checking for script updates from the specified remote URL.
+This project is licensed under the **Red Team Research License (RTR-License)**.
 
-### anasspylogger.py
+You are permitted to:
+- Use, modify, and extend this tool **for educational purposes, ethical hacking, and Red Team simulation, provided you acknowledge the source**.
+- Share the code with credit to the original author.
 
-The `anasspylogger.py` script is the core of the keylogger. It contains the following features:
-- **Keylogging:** Captures keystrokes and stores them in a log file.
-- **Email Reporting:** Sends the log file to the specified email address at regular intervals.
-- **Persistence:** Sets up the script to run automatically on system startup (works on Linux, Windows, and macOS).
-- **Auto-Update:** Fetches the latest script from the remote server if updates are available.
+You are strictly prohibited from:
+- Use this tool for any illegal activity, real-world surveillance, or unauthorized access to systems.
+- Sell or distribute this tool for malicious purposes.
 
-## Persistence Setup
+Any violation of these terms voids the license and gives the author the right to take legal action or publicly disclose any misuse.
 
-### Linux
-On Linux systems, the script sets up an autostart entry to run the keylogger at startup. It creates a `.desktop` file in the `~/.config/autostart` directory to ensure the keylogger runs automatically.
+---
 
-### Windows
-On Windows systems, the script creates a batch file that runs the keylogger silently at startup from the `APPDATA` directory.
+## ⚠️ Legal Disclaimer
 
-### macOS
-On macOS, the script creates a LaunchAgent (`.plist`) file in the `~/Library/LaunchAgents` directory to ensure the keylogger starts at login.
+> ⚠ **WARNING: FOR AUTHORIZED USE ONLY**
 
-## Ethical Use
+This software is provided exclusively for the following purposes:
+- **Educational Purposes**
+- **Cybersecurity Research**
+- **Forcing recruitment and penetration testing on systems you own or expressly authorize**
 
-This tool is for ethical testing only. Never use it on systems you do not own or do not have explicit permission to test. Unauthorized access to computer systems is illegal and unethical. Always follow ethical guidelines and obtain proper authorization before using this tool.
+**Unauthorized dissemination**, use against third-party infrastructure, espionage, or malicious espionage:
+- Is a **criminal offense**
+- Reported to the relevant authorities
+- May result in **serious legal consequences**
 
-## Disclaimer
+The author (**Anass Labriny**) assumes **no responsibility** for any misuse, damages, or legal claims arising from the use of this tool.
 
-**AnasSpyLogger** is created for educational and ethical testing purposes. The creator is not responsible for any misuse of the tool. By using this tool, you agree to use it solely for ethical penetration testing in accordance with all applicable laws.
+**You have been warned.**
 
-## License
+This tool is intended exclusively for **educational** and **forcing** authorized purposes.
+**Unauthorized use is illegal.** The author is not responsible for misuse. ---
 
-This tool is released under the MIT License. See [LICENSE](LICENSE) for more details.
-
-## 👨💻 Author
+## 🧠 Author
 
 **Anas Labrini**  
-📍 Salé, Morocco  
-📧 redteamer.anass@gmail.com
+18 years old | Red Team Cybersecurity Researcher  
+Salé, Morocco 🇲🇦  
+GitHub: [anaslabrini](https://github.com/anaslabrini)
+Instagram: [anasans005](https://www.instagram.com/anasans005?igsh=dzNsOXN3Nm9INmVk)
+WebSite: [anaslabrini](https://anaslabrini.netlify.app)
+
