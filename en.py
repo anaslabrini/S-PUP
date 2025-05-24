@@ -20,7 +20,7 @@ import platform
 
 file_path = input("Enter path your script : ")
 # اسم السكربت المشفر
-output_file = "AnasSpyLogger_AES.py"
+output_file = "S-PUP_AES.py"
 
 def clear_screen():
     if os.name == "posix":
@@ -80,7 +80,7 @@ def encrypt(raw, password):
     encrypted = cipher.encrypt(raw)
     return base64.b64encode(iv + encrypted).decode()
 
-# اقرأ سكربت AnasSpyLogger الأصلي
+# اقرأ سكربت S-PUP الأصلي
 with open(file_path, "rb") as f:
     script_data = f.read()
 
@@ -96,7 +96,7 @@ encrypted_code = encrypt(script_data, password)
 
 
 # أنشئ سكربت مشفر
-with open("AnasSpyLogger_AES.py", "w") as f:
+with open("S-PUP_AES.py", "w") as f:
     f.write(f'''
 import base64
 from Crypto.Cipher import AES
