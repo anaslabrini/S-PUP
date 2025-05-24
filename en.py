@@ -8,28 +8,18 @@
 # S-PUP
 # S-PUP
 # By Anas Labrini
-
-
 from Crypto.Cipher import AES
 import base64
 import os
 import subprocess
 from hashlib import sha256
 import platform
-
-
-file_path = input("Enter path your script : ")
-# اسم السكربت المشفر
-output_file = "S-PUP_AES.py"
-
 def clear_screen():
     if os.name == "posix":
         os.system("clear")
     elif os.name == "nt":
         os.system("cls")
-
 clear_screen()
-
 print("                     From nothing we make everything")
 print("""\033[91m			       vdfji\033[0m#*$pp
 \033[91m	                      m516$9#\033[0m#$$8=m
@@ -66,12 +56,11 @@ print("""\033[91m			       vdfji\033[0m#*$pp
 \033[91m      SHARK PUP Tool by Anas Labrini - v1.7 
 \033[0m
 """)
-
-
-
+file_path = input("Enter path your script : ")
+# اسم السكربت المشفر
+output_file = "S-PUP_AES.py"
 def pad(data):
     return data + b"\0" * (AES.block_size - len(data) % AES.block_size)
-
 def encrypt(raw, password):
     raw = pad(raw)
     key = sha256(password.encode()).digest()
@@ -79,22 +68,16 @@ def encrypt(raw, password):
     cipher = AES.new(key, AES.MODE_CBC, iv)
     encrypted = cipher.encrypt(raw)
     return base64.b64encode(iv + encrypted).decode()
-
 # اقرأ سكربت S-PUP الأصلي
 with open(file_path, "rb") as f:
     script_data = f.read()
-
 # توليد كلمة السر ديناميكيًا (مثال: باستخدام خصائص الجهاز)
 def generate_dynamic_key():
     base = platform.node() + platform.system() + platform.processor()
     return sha256(base.encode()).hexdigest()[:32]  # 256-bit key (as hex string)
-
 password = generate_dynamic_key()
-
 # شفر السكربت
 encrypted_code = encrypt(script_data, password)
-
-
 # أنشئ سكربت مشفر
 with open("S-PUP_AES.py", "w") as f:
     f.write(f'''
@@ -122,9 +105,7 @@ enc_code = """{encrypted_code}"""
 password = generate_dynamic_key()
 exec(compile(decrypt(enc_code, password), "<string>", "exec"))
 ''')
-
 print(f"\n An encrypted script has been created: {output_file}")
-
 # اسأل المستخدم إذا كان يريد تحويله إلى EXE
 to_exe = input(" Do you want to convert the file to .exe? (y/n): ").lower()
 if to_exe == 'y':
@@ -132,10 +113,8 @@ if to_exe == 'y':
         new_name = input(" Enter name for your final EXE file (without .py): ").strip()
         if not new_name.endswith(".py"):
             new_name += ".py"
-
     # إعادة تسمية الملف المشفر إلى الاسم الجديد
         os.rename(output_file, new_name)
-
         print(" Converting to EXE using PyInstaller...")
         subprocess.run(["pyinstaller", "--noconfirm", "--onefile", "--noconsole", new_name])
         print("\n The executable file was created successfully in the dist/ directory.")
