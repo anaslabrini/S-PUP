@@ -178,7 +178,7 @@ This software is provided exclusively for the following purposes:
 - Reported to the relevant authorities
 - May result in **serious legal consequences**
 
-The author (**Anass Labriny**) assumes **no responsibility** for any misuse, damages, or legal claims arising from the use of this tool.
+The author (**Anas Labrini**) assumes **no responsibility** for any misuse, damages, or legal claims arising from the use of this tool.
 
 **You have been warned.**
 
