@@ -122,7 +122,7 @@ print(f"\n An encrypted script has been created: {output_file}")
 to_exe = input(" Do you want to convert the file to .exe? (y/n): ").lower()
 if to_exe == 'y':
     try:
-        new_name = input("Enter name for your final EXE file (without .py): ").strip()
+        new_name = input(" Enter name for your final EXE file (without .py): ").strip()
         if not new_name.endswith(".py"):
             new_name += ".py"
 
