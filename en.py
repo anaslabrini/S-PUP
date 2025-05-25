@@ -129,4 +129,4 @@ if to_exe == 'y':
     except Exception as e:
         print(f"\n{red_bold} Error converting to exe:{reset} {crimson}{e}{reset}")
 else:
-    print(f"\n{crimson} The conversion to .exe has been cancelled.{reset}")
+    print(f"\n{royal_blue} The conversion to .exe has been cancelled.{reset}")
