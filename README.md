@@ -41,7 +41,7 @@ S-PUP/
 ## 🐍 VBS-Python Loader
 `VBS-Python Loader` is a stealthy dropper script written in VBScript and PowerShell, designed for red teaming, penetration testing, and advanced malware simulation. This loader simulates how real-world adversaries silently deliver Python-based payloads on Windows machines without triggering security alerts.
 
-## 🚀 Features
+### 🚀 Features
 
  - **Silent Execution:** Executes PowerShell scripts in hidden mode with `ExecutionPolicy Bypass`.
  - **Embedded Python Deployment:** Automatically detects system architecture and downloads the appropriate **portable embedded Python 3.11** environment (no installation required).
@@ -50,7 +50,7 @@ S-PUP/
  - **Auto Execution:** Launches the Python payload immediately after environment setup.
  - **Self-Cleanup:** Deletes all temporary files and the loader script after successful execution, leaving minimal traces.
 
-## 🧬 Technical Workflow
+### 🧬 Technical Workflow
 
 1. VBScript generates and writes a PowerShell loader to `%TEMP%`.
 2. PowerShell script:
@@ -60,7 +60,7 @@ S-PUP/
    - Fetches and executes the Python payload.
 3. Script removes itself to avoid forensic discovery.
 
-## 📁 File Structure
+### 📁 File Structure
 
 ```
 📄 loader.vbs          → The main VBS dropper
