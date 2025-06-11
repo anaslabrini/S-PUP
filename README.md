@@ -69,6 +69,7 @@ S-PUP/
  ┗ 📄 cleanup.vbs      → Self-deletion script
 
 ```
+---
 
 ### ▶️ Usage
 ```bash
