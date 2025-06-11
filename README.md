@@ -19,7 +19,8 @@ _"From nothing we make everything."_
 
 ```
 S-PUP/
-├── en.py               # AES encryptor with self-rebuilding script capabilities
+├── en.py              # AES encryptor with self-rebuilding script capabilities
+├── windows.vbs        # VBS-Python Loader is a stealthy dropper script written in VBScript and PowerShell
 └── tool/
     └── S-PUP.py        # Main keylogger and persistence tool
 ```
@@ -34,6 +35,40 @@ S-PUP/
 - Option to convert the final encrypted script into a `.exe` using PyInstaller.
 - Uses system details (hostname, OS, CPU) to generate encryption key.
 - For example, guards monitor their leader, and if they can't find him or he dies, one of the guards takes over and revives him.
+
+---
+
+## 🐍 VBS-Python Loader
+`VBS-Python Loader` is a stealthy dropper script written in VBScript and PowerShell, designed for red teaming, penetration testing, and advanced malware simulation. This loader simulates how real-world adversaries silently deliver Python-based payloads on Windows machines without triggering security alerts.
+
+## 🚀 Features
+
+ - **Silent Execution:** Executes PowerShell scripts in hidden mode with `ExecutionPolicy Bypass`.
+ - **Embedded Python Deployment:** Automatically detects system architecture and downloads the appropriate **portable embedded Python 3.11** environment (no installation required).
+ - **Library Injection:** Installs critical Python libraries (`requests`, `pynput`, `psutil`) silently.
+ - **Remote Payload Fetching:** Downloads an external Python script (keylogger or any custom logic) from a remote server.
+ - **Auto Execution:** Launches the Python payload immediately after environment setup.
+ - **Self-Cleanup:** Deletes all temporary files and the loader script after successful execution, leaving minimal traces.
+
+## 🧬 Technical Workflow
+
+1. VBScript generates and writes a PowerShell loader to `%TEMP%`.
+2. PowerShell script:
+   - Creates Python install path.
+   - Downloads & extracts embedded Python.
+   - Installs required libraries.
+   - Fetches and executes the Python payload.
+3. Script removes itself to avoid forensic discovery.
+
+## 📁 File Structure
+
+```
+📄 loader.vbs          → The main VBS dropper
+📁 %TEMP%
+ ┣ 📄 loader.ps1       → Generated PowerShell loader
+ ┗ 📄 cleanup.vbs      → Self-deletion script
+
+```
 
 ### ▶️ Usage
 ```bash
